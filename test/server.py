@@ -31,4 +31,4 @@ if __name__ == '__main__':
     self_address = node_addresses[args.name]
     del node_addresses[args.name]
     main(self_address, node_addresses)
-    print("Finished..,")
+    print("Finished...")
