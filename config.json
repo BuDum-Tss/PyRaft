@@ -1,0 +1,5 @@
+{
+  "serverA": "localhost:1111",
+  "serverB": "localhost:2222",
+  "serverC": "localhost:3333"
+}
