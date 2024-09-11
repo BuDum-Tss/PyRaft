@@ -2,9 +2,22 @@ import argparse
 import json
 from typing import Dict
 
+from pyraft import Cluster
+from pyraft.syncobjects import SyncObject
+
 
 def main(self_address: str, node_addresses: Dict[str, str]):
-    pass
+    cluster = Cluster(self_address, list(node_addresses.values()))
+    obj = SyncObject("sync_value", value="default", cluster=cluster)
+    while True:
+        input_args = input("> ").split(" ")
+        match input_args[0]:
+            case "exit":
+                break
+            case "set":
+                obj.value = input_args[1]
+            case "get":
+                print(obj.value)
 
 
 if __name__ == '__main__':
