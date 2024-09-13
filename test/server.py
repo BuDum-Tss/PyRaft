@@ -2,12 +2,12 @@ import argparse
 import json
 from typing import Dict
 
-from pyraft import Cluster
+from pyraft import Node
 from pyraft.syncobjects import SyncObject
 
 
 def main(self_address: str, node_addresses: Dict[str, str]):
-    cluster = Cluster(self_address, list(node_addresses.values()))
+    cluster = Node(self_address, list(node_addresses.values()))
     obj = SyncObject("sync_value", value="default", cluster=cluster)
     while True:
         input_args = input("> ").split(" ")

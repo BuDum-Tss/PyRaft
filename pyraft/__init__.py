@@ -1,1 +1,1 @@
-from .cluster import Cluster
+from pyraft.core.node import Node

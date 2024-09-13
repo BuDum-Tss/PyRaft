@@ -1,8 +1,8 @@
-from pyraft.cluster import Cluster
+from pyraft.core.node import Node
 
 
 class SyncObject:
-    def __init__(self, shared_id: str, value=None, cluster: Cluster = None):
+    def __init__(self, shared_id: str, value=None, cluster: Node = None):
         self.__value = value
         self.__id = shared_id
         self.__cluster = cluster
