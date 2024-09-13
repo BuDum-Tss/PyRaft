@@ -3,11 +3,12 @@ import json
 from typing import Dict
 
 from pyraft import Node
+from pyraft.data.settings import Settings
 from pyraft.syncobjects import SyncObject
 
 
-def main(self_address: str, node_addresses: Dict[str, str]):
-    cluster = Node(self_address, list(node_addresses.values()))
+def main(self_name: str, nodes: Dict[str, str]):
+    cluster = Node(Settings(self_name, nodes, lambda: "0000"))
     obj = SyncObject("sync_value", value="default", cluster=cluster)
     while True:
         input_args = input("> ").split(" ")
@@ -28,7 +29,5 @@ if __name__ == '__main__':
         node_addresses: dict = json.load(file)
     if args.name not in node_addresses:
         print("Node not found at config")
-    self_address = node_addresses[args.name]
-    del node_addresses[args.name]
-    main(self_address, node_addresses)
+    main(args.name, node_addresses)
     print("Finished...")
