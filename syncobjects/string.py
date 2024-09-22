@@ -1,11 +1,11 @@
-from pyraft.core.node import Node
+
+from pyraft import Node, SyncObject
 
 
-class SyncObject:
+class SyncString(SyncObject):
     def __init__(self, shared_id: str, value=None, cluster: Node = None):
+        super().__init__(shared_id, cluster)
         self.__value = value
-        self.__id = shared_id
-        self.__cluster = cluster
 
     @property
     def value(self):
@@ -14,7 +14,7 @@ class SyncObject:
     @value.setter
     def value(self, value):
         self.__value = value
-        self.__cluster.update(self.__id, self.__value)
+        self.update(self.__value)
 
-    def __hash__(self):
-        return hash(self.__value)
+    def synchronize(self, value: str):
+        self.__value = value

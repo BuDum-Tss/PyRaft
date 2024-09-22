@@ -2,14 +2,13 @@ import argparse
 import json
 from typing import Dict
 
-from pyraft import Node
-from pyraft.data.settings import Settings
-from pyraft.syncobjects import SyncObject
+from pyraft import Node, Settings
+from syncobjects import SyncString
 
 
 def main(self_name: str, nodes: Dict[str, str]):
     cluster = Node(Settings(self_name, nodes, lambda: "0000"))
-    obj = SyncObject("sync_value", value="default", cluster=cluster)
+    obj = SyncString("sync_value", value="default", cluster=cluster)
     while True:
         input_args = input("> ").split(" ")
         match input_args[0]:

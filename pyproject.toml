@@ -9,8 +9,15 @@ readme = "README.md"
 python = "^3.12"
 fastapi = "^0.114.1"
 uvicorn = "^0.30.6"
+requests = "^2.32.3"
+flask = "^3.0.3"
+flask-classful = "^0.16.0"
 
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+
+[tool.poetry.scripts]
+test = "test.unit:run"

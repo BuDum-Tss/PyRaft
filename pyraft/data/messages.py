@@ -13,6 +13,7 @@ class AppendRecordsReq(BaseModel):
     term: int
     leader_id: str
     prev_log_index: int
+    prev_log_index: int
     entries: List[Record]
 
 
@@ -30,7 +31,7 @@ class RequestVoteReq(BaseModel):
 
 class RequestVoteResp(BaseModel):
     term: int
-    candidate_id: str
+    vote_granted: bool
 
 
 class UpdateValueReq(BaseModel):
