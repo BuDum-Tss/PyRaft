@@ -2,28 +2,41 @@ from typing import Dict
 
 from abc import ABC, abstractmethod
 
-from pyraft.node import Node
-
 
 class SyncObject(ABC):
-    def __init__(self, shared_id: str, cluster: Node = None):
+    def __init__(self, shared_id: str, node=None):
         self.__id = shared_id
-        self.__cluster = cluster
-
-    def update(self, value: str):
-        self.__cluster.update(self.__id, value)
+        self.__node = node
 
     @abstractmethod
-    def synchronize(self, value: str):
+    def syncdata(self) -> str:
         pass
+
+    def update(self):
+        self.__node.update(self.__id, self.syncdata())
+
+    @abstractmethod
+    def synchronize(self, syncdata: str):
+        pass
+
 
 class SyncStorage:
     def __init__(self):
-        self.index2objects: Dict[str, SyncObject] = {}
+        self.index2objects: Dict[str, SyncObject | str] = {}
 
     def index(self, shared_id: str, sync_object: SyncObject):
-        self.index2objects[shared_id] = sync_object
+        if shared_id not in self.index2objects:
+            self.index2objects[shared_id] = sync_object
+        else:
+            value = self.index2objects[shared_id]
+            self.index2objects[shared_id] = sync_object
+            if isinstance(value, str):
+                sync_object.synchronize(value)
+            else:
+                sync_object.synchronize(value.syncdata())
 
     def update(self, shared_id: str, value: str):
-        self.index2objects[shared_id]._synchronize(value)
-
+        if shared_id not in self.index2objects:
+            self.index2objects[shared_id] = value
+        else:
+            self.index2objects[shared_id].synchronize(value)

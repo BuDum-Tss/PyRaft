@@ -42,9 +42,9 @@ class TestTransport(unittest.TestCase):
         leader_id = "leader"
         address = "localhost:8000"
         receiver = TestReceiver(append_records_resp, request_vote_resp, update_value_resp)
-        p = Proxy(receiver=receiver, self_node=Address(leader_id, address))
+        p = Proxy(receiver=lambda: receiver, self_node=Address(leader_id, address))
         p.start()
-        sender = HttpSender(access_token=lambda: "")
+        sender = HttpSender()
 
         sender.update(address, update_value_req)
         self.assertEqual(update_value_req, receiver.update_value_req)

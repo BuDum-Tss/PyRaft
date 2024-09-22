@@ -13,16 +13,13 @@ set_logging(logging.DEBUG)
 
 
 class HttpSender(SenderApi):
-    def __init__(self, access_token: Callable[[], str]) -> None:
-        self.access_token = access_token
 
     def append_records(self, address: str, data: AppendRecordsReq) -> AppendRecordsResp:
         with requests.Session() as session:
             url = self.url(address, APPEND_RECORDS_ROUTE)
             logging.debug(f"SENDER - POST {APPEND_RECORDS_ROUTE} - DATA: {data.model_dump_json()}")
             response: requests.Response = session.post(url, data=data.model_dump_json(),
-                                                       headers={"Authorization": f"Bearer {self.access_token()}",
-                                                                "Content-Type": "application/json"})
+                                                       headers={"Content-Type": "application/json"})
             if response.status_code == 200:
                 logging.debug(f"SENDER - POST {APPEND_RECORDS_ROUTE} - RESPONSE: {response.text}")
                 return TypeAdapter(type=AppendRecordsResp).validate_json(response.text)
@@ -33,8 +30,7 @@ class HttpSender(SenderApi):
         with requests.Session() as session:
             url = self.url(address, REQUEST_VOTE_ROUTE)
             response: requests.Response = session.post(url, data=data.model_dump_json(),
-                                                       headers={"Authorization": f"Bearer {self.access_token()}",
-                                                                "Content-Type": "application/json"})
+                                                       headers={"Content-Type": "application/json"})
             if response.status_code == 200:
                 logging.debug(f"SENDER - POST {REQUEST_VOTE_ROUTE} - RESPONSE: {response.text}")
                 return TypeAdapter(type=RequestVoteResp).validate_json(response.text)

@@ -1,5 +1,7 @@
-from pyraft.data.enums import RoleName
-from pyraft.data.storage import SyncStorage
+from time import sleep
+
+from .enums import RoleName
+from .storage import SyncStorage
 from .settings import Settings
 
 
@@ -35,9 +37,7 @@ class State:
         self.match_index = []  # индекс самого последнего лога лидера
 
     @property
-    def last_log_index(self):
-        return len(self.log)
-
-    @property
-    def leader_address(self):
-        return self.settings.node_id[self.leader_id]
+    def leader(self):
+        while self.leader_id == "":
+            sleep(1)
+        return self.settings.nodes[self.leader_id]

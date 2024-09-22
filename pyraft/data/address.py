@@ -1,5 +1,3 @@
-import re
-
 
 def check(address: str):
     addr = address.split(":")

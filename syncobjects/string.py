@@ -1,10 +1,10 @@
-
 from pyraft import Node, SyncObject
 
 
 class SyncString(SyncObject):
-    def __init__(self, shared_id: str, value=None, cluster: Node = None):
-        super().__init__(shared_id, cluster)
+
+    def __init__(self, shared_id: str, value=None, node: Node = None):
+        super().__init__(shared_id, node)
         self.__value = value
 
     @property
@@ -14,7 +14,10 @@ class SyncString(SyncObject):
     @value.setter
     def value(self, value):
         self.__value = value
-        self.update(self.__value)
+        self.update()
 
-    def synchronize(self, value: str):
-        self.__value = value
+    def syncdata(self) -> str:
+        return self.__value
+
+    def synchronize(self, syncdata: str):
+        self.__value = syncdata
