@@ -1,13 +1,10 @@
 import logging
-from typing import Dict
 
 from pyraft import Settings
-from pyraft.core.api import ReceiverApi, SenderApi
-from pyraft.core.roles import Role, Follower, Candidate, Leader
+from pyraft.core import Controller
+from pyraft.core.api import SenderApi
 from pyraft.data import State, Log, SyncStorage
 from pyraft.data.enums import RoleName
-from pyraft.data.messages import UpdateValueReq
-from pyraft.transport.receiver import Proxy
 from pyraft.transport.sender import HttpSender
 
 
@@ -19,18 +16,14 @@ class Node:
         self.log = Log(sync_storage=self.sync_storage)
         self.state = State(settings=self.settings, log=self.log)
         self.sender: SenderApi = HttpSender()
-        self.receiver: Dict[RoleName, Role] = {
-            RoleName.follower: Follower(self.state, self.log, self.sender),
-            RoleName.candidate: Candidate(self.state, self.log, self.sender),
-            RoleName.leader: Leader(self.state, self.log, self.sender)
-        }
-        self.proxy = Proxy(receiver=lambda: self.receiver[self.state.role], self_node=self.settings.self_node)
-        self.proxy.start()
+        self.controller = Controller(RoleName.follower,  self.state, self.sender)
 
-    def index(self, shared_id: str, sync_object):
-        self.sync_storage.index(shared_id, sync_object)
-        logging.debug(f"INDEX OBJECT:{shared_id}")
+    def receiver(self):
+        return self.controller.current
 
-    def update(self, shared_id: str, value):
-        code = self.sender.update(str(self.state.leader), UpdateValueReq(shared_object_id=shared_id, value=value))
-        logging.debug(f"UPDATE OBJECT:{shared_id} to VALUE: {value} - CODE: {code}")
+    def start(self):
+        self.controller.start()
+
+    def __del__(self):
+        self.controller.stop()
+        logging.debug("Node destroyed")

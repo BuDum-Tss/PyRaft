@@ -1,2 +1,2 @@
-from .data import Settings, SyncObject
+from .data import Settings
 from .node import Node

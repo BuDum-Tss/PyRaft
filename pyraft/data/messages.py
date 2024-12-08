@@ -1,23 +1,26 @@
 from typing import List
 from pydantic import BaseModel
 
-
-class Record(BaseModel):
-    index: int
-    shared_object_id: str
+class SyncObjectModel(BaseModel):
+    key: str
     value: str
 
+class Record(SyncObjectModel):
+    term: int
+    key: str
+    value: str
 
 class AppendRecordsReq(BaseModel):
     term: int
     leader_id: str
     prev_log_index: int
-    prev_log_index: int
-    entries: List[Record]
-
+    prev_log_term: int
+    records: List[Record]
+    commit: int
 
 class AppendRecordsResp(BaseModel):
     term: int
+    last_log_index: int
     success: bool
 
 
@@ -32,7 +35,3 @@ class RequestVoteResp(BaseModel):
     term: int
     vote_granted: bool
 
-
-class UpdateValueReq(BaseModel):
-    shared_object_id: str
-    value: str

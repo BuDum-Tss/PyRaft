@@ -7,12 +7,12 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
-fastapi = "^0.114.1"
 uvicorn = "^0.30.6"
+fastapi = "^0.115.4"
 requests = "^2.32.3"
-flask = "^3.0.3"
-flask-classful = "^0.16.0"
 
+[tool.poetry.group.dev.dependencies]
+poethepoet = "^0.31.1"
 
 [build-system]
 requires = ["poetry-core"]
@@ -20,4 +20,10 @@ build-backend = "poetry.core.masonry.api"
 
 
 [tool.poetry.scripts]
-test = "test.unit:run"
+test = "test.unit:main"
+raft = "pyraft.main:main"
+
+[tool.poe.tasks]
+sA = "poetry run raft -n ServerA -c config.json"
+sB = "poetry run raft -n ServerB -c config.json"
+sC = "poetry run raft -n ServerC -c config.json"

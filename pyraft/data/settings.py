@@ -14,25 +14,17 @@ class Settings:
     def __init__(self, self_id: str, nodes: Dict[str, str]):
         check(self_id, nodes)
         self.__node_id = self_id
-        self.__nodes = {node_id: Address(node_id, address) for node_id, address in nodes.items()}
-        self.__election_timeout = 500  # Время ожидания сообщения от лидера, после которого нода начинает голосование (msec)
+        self.__nodes: Dict[str, Address] = {node_id: Address(node_id, address) for node_id, address in nodes.items()}
 
     @property
-    def min_election_timeout(self):
+    def self_node(self) -> Address:
         """
-        :return: Минимальное время ожидания запроса от лидера (ms).
-        """
-        return self.__election_timeout
-
-    @property
-    def self_node(self):
-        """
-        :return: Идентификатор этой ноды
+        :return: Эту ноду
         """
         return self.__nodes[self.__node_id]
 
     @property
-    def nodes(self):
+    def nodes(self) -> Dict[str, Address]:
         """
         :return: Словарь идентификатор ноды -> адрес
         """

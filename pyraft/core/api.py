@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Tuple
 
-from pyraft.data.messages import AppendRecordsReq, AppendRecordsResp, RequestVoteReq, RequestVoteResp, UpdateValueReq
+from pyraft.data.messages import AppendRecordsReq, AppendRecordsResp, RequestVoteReq, RequestVoteResp, SyncObjectModel
 
 
 class ReceiverApi(ABC):
@@ -14,19 +14,18 @@ class ReceiverApi(ABC):
         pass
 
     @abstractmethod
-    def update(self, data: UpdateValueReq) -> Tuple[int, str]:
+    def set_value(self, data: SyncObjectModel) -> Tuple[int, str]:
         pass
 
+    @abstractmethod
+    def get_value(self, key: str) -> str:
+        pass
 
 class SenderApi(ABC):
     @abstractmethod
-    def append_records(self, address: str, data: AppendRecordsReq) -> AppendRecordsResp:
+    def append_records(self, address: str, data: AppendRecordsReq, timeout: float = 10.0) -> AppendRecordsResp:
         pass
 
     @abstractmethod
-    def request_vote(self, address: str, data: RequestVoteReq) -> RequestVoteResp:
-        pass
-
-    @abstractmethod
-    def update(self, address: str, data: UpdateValueReq) -> int:
+    def request_vote(self, address: str, data: RequestVoteReq, timeout: float = 10.0) -> RequestVoteResp:
         pass

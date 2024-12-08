@@ -3,7 +3,7 @@ from typing import Tuple
 
 from pyraft.core.api import ReceiverApi
 from pyraft.data import Address
-from pyraft.data.messages import UpdateValueReq, RequestVoteReq, RequestVoteResp, AppendRecordsReq, AppendRecordsResp
+from pyraft.data.messages import SyncObjectModel, RequestVoteReq, RequestVoteResp, AppendRecordsReq, AppendRecordsResp
 from pyraft.transport.receiver import Proxy
 from pyraft.transport.sender import HttpSender
 
@@ -26,7 +26,7 @@ class TestReceiver(ReceiverApi):
         self.request_vote_req = data
         return self.request_vote_resp
 
-    def update(self, data: UpdateValueReq) -> Tuple[int, str]:
+    def update(self, data: SyncObjectModel) -> Tuple[int, str]:
         self.update_value_req = data
         return self.update_value_resp, "ok"
 
@@ -35,8 +35,8 @@ class TestTransport(unittest.TestCase):
     def test_api(self):
         append_records_req = AppendRecordsReq(term=1, leader_id="leader", prev_log_index=0, entries=[])
         request_vote_req = RequestVoteReq(term=1, candidate_id="candidate", last_log_index=0, last_log_term=0)
-        update_value_req = UpdateValueReq(shared_object_id="id", value="value")
-        append_records_resp = AppendRecordsResp(term=0, success=0)
+        update_value_req = SyncObjectModel(shared_object_id="id", value="value")
+        append_records_resp = AppendRecordsResp(term=0, last_log_index=0, success=0)
         request_vote_resp = RequestVoteResp(term=0, vote_granted=True)
         update_value_resp = 200
         leader_id = "leader"
