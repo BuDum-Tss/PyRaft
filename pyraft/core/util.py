@@ -1,23 +1,11 @@
-from enum import Enum
-from typing import Tuple
+import random
 
 
-class LogState(Enum):
-    UP_TO_DATE = "up-to-date",
-    SYNCHRONIZED = "synchronized",
-    OUT_OF_DATE = "out-of-date"
+class Timings:
+    HEARTBEAT_TIME = 40 / 10
+    BROADCAST_TIME = 40 / 10
+    VOTE_TIMEOUT = 25 / 10
 
-
-def is_up_to_date(to_compare: Tuple[int, int], reference: Tuple[int, int]) -> LogState:
-    cmp_term, cmp_log = to_compare
-    ref_term, ref_log = reference
-    if cmp_term > ref_term:
-        return LogState.UP_TO_DATE
-    elif cmp_term == ref_term and cmp_log > ref_log:
-        return LogState.UP_TO_DATE
-    elif cmp_term == ref_term and cmp_log == ref_log:
-        return LogState.SYNCHRONIZED
-    elif cmp_term == ref_term and cmp_log < ref_log:
-        return LogState.OUT_OF_DATE
-    elif cmp_term < ref_term:
-        return LogState.OUT_OF_DATE
+    @staticmethod
+    def election_timeout():
+        return random.Random().randint(25, 500) / 10

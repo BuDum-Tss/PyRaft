@@ -1,7 +1,8 @@
 import unittest
 from multiprocessing import Process
 
-from pyraft import Node, Settings
+from pyraft import Node
+from pyraft.data import Settings
 from pyraft.core.api import SenderApi
 from pyraft.data.messages import AppendRecordsReq, Record
 from pyraft.transport.sender import HttpSender

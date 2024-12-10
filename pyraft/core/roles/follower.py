@@ -1,13 +1,16 @@
 import logging
 import threading
+from http.client import responses
 
 from pyraft.core.api import ReceiverApi, SenderApi
 from pyraft.core.role import Role
-from pyraft.core.time import Timings
-from pyraft.data import State
-from pyraft.data.enums import RoleName
+from pyraft.core.util import Timings
+
+from pyraft.data.state import State
+from pyraft.data.util import RoleName
 from pyraft.data.messages import RequestVoteResp, RequestVoteReq, AppendRecordsReq, AppendRecordsResp, SyncObjectModel
 
+log = logging.getLogger("FOLLOWER")
 
 class Follower(Role, ReceiverApi):
     heartbeat = None
@@ -16,84 +19,76 @@ class Follower(Role, ReceiverApi):
         super().__init__(state, sender)
         self.heartbeat = threading.Event()
 
-    def __del__(self):
-        pass
-
     def run(self) -> RoleName:
-        self.state.leader_id = None
         while not self.interrupted:
-            logging.info(f"[{self.state.term}] - {self.state.log} - Waiting heartbeat...")
+            log.info(f"RUN - [{self.state.term}] - {self.state.log} - Heartbeat waiting start.")
+            log.info(f"RUN - [{self.state.term}] - {self.state.log} - Waiting heartbeat...")
             self.heartbeat.wait(Timings.BROADCAST_TIME)
             if self.heartbeat.is_set():
-                logging.info(f"[{self.state.term}] - {self.state.log} - Heartbeat received.")
+                log.info(f"RUN - [{self.state.term}] - {self.state.log} - Heartbeat received.")
                 self.heartbeat.clear()
             else:
-                logging.info(f"[{self.state.term}] - {self.state.log} - No heartbeat. Waiting election time...")
+                log.info(f"RUN - [{self.state.term}] - {self.state.log} - No heartbeat. Waiting election time...")
                 with self.state:
-                    self.state.rv_voted_for = None
+                    self.state.candidate = None
                 self.heartbeat.wait(Timings.election_timeout())
-                if self.state.rv_voted_for is not None:
-                    logging.info(f"[{self.state.term}] - {self.state.log} - Find candidate.")
+                if self.state.candidate is not None:
+                    log.info(f"RUN - [{self.state.term}] - {self.state.log} - Find candidate.")
+                    self.heartbeat.clear()
                 elif self.heartbeat.is_set():
-                    logging.info(f"[{self.state.term}] - {self.state.log} - Heartbeat received.")
+                    log.info(f"RUN - [{self.state.term}] - {self.state.log} - Heartbeat received.")
                     with self.state:
-                        self.state.rv_voted_for = self.state.rv_leader
+                        self.state.candidate = self.state.leader
                 else:
-                    logging.info(f"[{self.state.term}] - {self.state.log} - No leader. Changing role...")
+                    log.info(f"RUN - [{self.state.term}] - {self.state.log} - No leader. Changing role...")
                     break
+                log.info(f"RUN - [{self.state.term}] - {self.state.log} - Heartbeat waiting finish.")
         return RoleName.candidate
 
     def append_records(self, data: AppendRecordsReq) -> AppendRecordsResp:
-        if data.term > self.state.term:
-            self.state.term = data.term
-        # 1
-        elif data.term < self.state.term:
+        if data.term < self.state.term:
             self.heartbeat.set()
+            log.info(f"AR - [{self.state.term}] - {self.state.log} - AR sender has not actual term!")
             return AppendRecordsResp(term=self.state.term, last_log_index=self.log.last_log_index, success=False)
-        # 2
+        self.state.term = data.term
         if data.prev_log_index > self.log.last_log_index or data.prev_log_term != self.log[data.prev_log_index].term:
             self.heartbeat.set()
+            log.info(f"AR - [{self.state.term}] - {self.state.log} - AR sender is not actual!")
             return AppendRecordsResp(term=self.state.term, last_log_index=self.log.last_log_index, success=False)
-
         self._append_records(data)
         return AppendRecordsResp(term=self.state.term, last_log_index=self.log.last_log_index, success=True)
 
     def _append_records(self, data: AppendRecordsReq):
-        logging.info(F"[{self.state.term}] - {self.state.log} - appending records {data.records}")
-        self.state.leader_id = data.leader_id
+        log.info(F"AR - [{self.state.term}] - {self.state.log} - appending records {data.records}")
+        self.state.leader = data.leader_id
         self.heartbeat.set()
         for i, record in enumerate(data.records):
-            record_idx: int = data.prev_log_index + i + 1
-            if record_idx <= self.log.last_log_index:
-                if record.term != self.log[record_idx].term:
-                    # 3
-                    self.log.clear_after(record_idx + 1)
-                    self.log.append(record)
-                    logging.info(F"[{self.state.term}] - {self.state.log} - append record: {record}")
-            else:
-                # 4
+            record_idx: int = data.prev_log_index + 1 + i
+            if record_idx > self.log.last_log_index:
+                self.log.append(record)
+                log.info(F"AR - [{self.state.term}] - {self.state.log} - append record at index {record_idx}: {record}")
+            elif record.term != self.log[record_idx].term:
+                self.log[record_idx] = record
+                log.info(F"AR - [{self.state.term}] - {self.state.log} - replace record at index {record_idx}: {record}")
                 self.state.log.append(record)
-        logging.info(F"[{self.state.term}] - {self.state.log} - apply before {data.commit}")
-        self.log.apply_before(data.commit + 1)
+        log.info(f"AR - [{self.state.term}] - {self.state.log} - apply to {data.commit}")
+        self.log.apply_to(data.commit)
 
     def request_vote(self, data: RequestVoteReq) -> RequestVoteResp:
-        logging.debug(f"[{self.state.term}] - {self.state.log} - requesting my vote...")
-        if data.term > self.state.term:
-            self.state.term = data.term
-            self.state.rv_voted_for = data
+        if data.term < self.state.term:
+            log.info(f"RV - [{self.state.term}] - {self.state.log} - RV sender has not actual term!")
+            return RequestVoteResp(term=self.state.term, vote_granted=False)
+        self.state.term = data.term
+        if self.state.candidate is None or (data.last_log_index >= self.state.log.last_log_index
+                and data.last_log_term >= self.state.log.last_log_term):
+            log.info(f"RV - [{self.state.term}] - {self.state.log} - Self not actual! Voting for RV sender...")
+            self.state.candidate = data
             return RequestVoteResp(term=self.state.term, vote_granted=True)
-        if data.term >= self.state.term:
-            if self.state.rv_voted_for is None or (data.last_log_index >= self.state.rv_voted_for.last_log_index
-                                                   and data.last_log_term >= self.state.rv_voted_for.last_log_term):
-                self.state.rv_voted_for = data
-                return RequestVoteResp(term=self.state.term, vote_granted=True)
-        else:
-            pass
-        logging.debug(f"[{self.state.term}] - {self.state.log} - I am more actual!!!")
+        logging.debug(f"RV - [{self.state.term}] - {self.state.log} -  RV sender is not actual!")
         return RequestVoteResp(term=self.state.term, vote_granted=False)
 
     def set_value(self, data: SyncObjectModel) -> tuple[int, str]:
         leader = self.state.leader
         if leader is None:
             return 503, "Leader not found"
-        return 301, f"http://{leader}/update"
+        return self.sender.set_value(leader, data)

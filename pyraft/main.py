@@ -3,7 +3,8 @@ import json
 import uvicorn
 from typing import Dict
 
-from pyraft import Node, Settings
+from pyraft import Node
+from pyraft.data.util import Settings
 from pyraft.log import set_logging
 from pyraft.transport.receiver import api
 
@@ -25,6 +26,7 @@ def main():
     api.title = name
     set_logging(log_file = f"{name}.log")
     api.node = Node(Settings(name, config))
-    uvicorn.run(api,
-                host=host,
-                port=int(port))
+    try:
+        uvicorn.run(api, host=host, port=int(port))
+    except KeyboardInterrupt:
+        pass

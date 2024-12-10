@@ -21,6 +21,7 @@ class ReceiverApi(ABC):
     def get_value(self, key: str) -> str:
         pass
 
+
 class SenderApi(ABC):
     @abstractmethod
     def append_records(self, address: str, data: AppendRecordsReq, timeout: float = 10.0) -> AppendRecordsResp:
@@ -28,4 +29,8 @@ class SenderApi(ABC):
 
     @abstractmethod
     def request_vote(self, address: str, data: RequestVoteReq, timeout: float = 10.0) -> RequestVoteResp:
+        pass
+
+    @abstractmethod
+    def set_value(self, address: str, data: SyncObjectModel, timeout: float = 10.0) -> tuple[int, str]:
         pass

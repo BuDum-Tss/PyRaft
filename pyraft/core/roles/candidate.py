@@ -5,11 +5,13 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pyraft.core.api import ReceiverApi, SenderApi
 from pyraft.core.role import Role
 from pyraft.core.threading.overflow_value import OverflowValue
-from pyraft.core.time import Timings
-from pyraft.data import Address, State
-from pyraft.data.enums import RoleName
+from pyraft.core.util import Timings
+
+from pyraft.data.state import State
+from pyraft.data.util import RoleName, Address
 from pyraft.data.messages import RequestVoteResp, RequestVoteReq, AppendRecordsReq, AppendRecordsResp
 
+log = logging.getLogger("CANDIDATE")
 
 class Candidate(Role, ReceiverApi):
     voting = None
@@ -22,10 +24,10 @@ class Candidate(Role, ReceiverApi):
         self.executor = None
         self.voting = threading.Event()
         self.new_role: RoleName = None
-        self.state.rv_voted_for = RequestVoteReq(term=self.state.term,
-                                                 candidate_id=self.state.settings.self_node.node_id,
-                                                 last_log_index=self.log.last_log_index,
-                                                 last_log_term=self.log.last_log_term)
+        self.state.candidate = RequestVoteReq(term=self.state.term,
+                                              candidate_id=self.state.settings.myself.id,
+                                              last_log_index=self.log.last_log_index,
+                                              last_log_term=self.log.last_log_term)
         c = int(len(self.state.settings.nodes) / 2)
         logging.info(f"[{self.state.term}] - {self.state.log} - Need to win: {c}")
         self.votes = OverflowValue(default=1,
@@ -33,9 +35,6 @@ class Candidate(Role, ReceiverApi):
                                    on_overflow=lambda: self._become(RoleName.leader))
         self.futures = None
 
-    def __del__(self):
-        for future in as_completed(self.futures):
-            future.result()
 
     def run(self):
         self.executor = ThreadPoolExecutor(max_workers=len(self.state.settings.nodes) - 1)
@@ -56,7 +55,7 @@ class Candidate(Role, ReceiverApi):
 
     def _request_votes(self) -> list:
         data = RequestVoteReq(term=self.state.term,
-                              candidate_id=self.state.settings.self_node.node_id,
+                              candidate_id=self.state.settings.myself.id,
                               last_log_index=self.log.last_log_index,
                               last_log_term=self.log.last_log_term)
         addresses: list[Address] = self.state.nodes
@@ -74,11 +73,10 @@ class Candidate(Role, ReceiverApi):
             self.votes.set(self.votes.get() + 1)
         return
 
-    def _become(self, role: RoleName):
-        logging.info(f"[{self.state.term}] - {self.new_role} ---> {role}")
-        self.state.role_changed = True
-        self.new_role = role
+    def _become(self, new_role: RoleName):
+        self.new_role = new_role
         self.voting.set()
+        self.stop()
 
     def append_records(self, data: AppendRecordsReq):
         if data.term > self.state.term:
@@ -89,21 +87,17 @@ class Candidate(Role, ReceiverApi):
                                  success=False)
 
     def request_vote(self, data: RequestVoteReq):
-        logging.debug(f"[{self.state.term}] - {self.state.log} - requesting my vote...")
-        if data.term > self.state.term:
-            self.state.term = data.term
-            self.state.rv_voted_for = data
+        if data.term < self.state.term:
+            log.info(f"RV - [{self.state.term}] - {self.state.log} - RV sender has not actual term!")
+            return RequestVoteResp(term=self.state.term, vote_granted=False)
+        self.state.term = data.term
+        if self.state.candidate is None or (data.last_log_index >= self.state.log.last_log_index
+                and data.last_log_term >= self.state.log.last_log_term):
+            log.info(f"RV - [{self.state.term}] - {self.state.log} - Self not actual! Voting for sender...")
+            self.state.candidate = data
             self._become(RoleName.follower)
             return RequestVoteResp(term=self.state.term, vote_granted=True)
-        if data.term == self.state.term:
-            if self.state.rv_voted_for is None or (data.last_log_index >= self.state.rv_voted_for.last_log_index
-                                                   and data.last_log_term >= self.state.rv_voted_for.last_log_term):
-                self.state.rv_voted_for = data
-                self._become(RoleName.follower)
-                return RequestVoteResp(term=self.state.term, vote_granted=True)
-        else:
-            pass
-        logging.debug(f"[{self.state.term}] - {self.state.log} - I am more actual!!!")
+        logging.debug(f"[{self.state.term}] - {self.state.log} -  RV sender is not actual!")
         return RequestVoteResp(term=self.state.term, vote_granted=False)
 
     def set_value(self, data: RequestVoteResp):

@@ -2,7 +2,8 @@ import unittest
 from multiprocessing import Process
 from time import sleep
 
-from pyraft import Node, Settings
+from pyraft import Node
+from pyraft.data import Settings
 from pyraft.syncobj import SyncString
 
 

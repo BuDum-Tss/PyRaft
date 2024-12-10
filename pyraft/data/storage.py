@@ -8,4 +8,4 @@ class SyncStorage:
         self.index2objects[shared_id] = value
 
     def get_value(self, key: str) -> str:
-        return self.index2objects[key]
+        return self.index2objects[key] if key in self.index2objects else None

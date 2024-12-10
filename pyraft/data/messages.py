@@ -1,14 +1,17 @@
 from typing import List
 from pydantic import BaseModel
 
+
 class SyncObjectModel(BaseModel):
     key: str
     value: str
+
 
 class Record(SyncObjectModel):
     term: int
     key: str
     value: str
+
 
 class AppendRecordsReq(BaseModel):
     term: int
@@ -18,9 +21,9 @@ class AppendRecordsReq(BaseModel):
     records: List[Record]
     commit: int
 
+
 class AppendRecordsResp(BaseModel):
     term: int
-    last_log_index: int
     success: bool
 
 
@@ -34,4 +37,3 @@ class RequestVoteReq(BaseModel):
 class RequestVoteResp(BaseModel):
     term: int
     vote_granted: bool
-

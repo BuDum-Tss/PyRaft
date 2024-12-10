@@ -1,10 +1,8 @@
-import logging
-
-from pyraft import Settings
 from pyraft.core import Controller
 from pyraft.core.api import SenderApi
-from pyraft.data import State, Log, SyncStorage
-from pyraft.data.enums import RoleName
+from pyraft.data.state import State, Log
+from pyraft.data.storage import SyncStorage
+from pyraft.data.util import Settings, RoleName
 from pyraft.transport.sender import HttpSender
 
 
@@ -24,6 +22,5 @@ class Node:
     def start(self):
         self.controller.start()
 
-    def __del__(self):
+    def stop(self):
         self.controller.stop()
-        logging.debug("Node destroyed")
