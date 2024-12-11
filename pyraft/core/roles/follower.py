@@ -1,6 +1,5 @@
 import logging
 import threading
-from http.client import responses
 
 from pyraft.core.api import ReceiverApi, SenderApi
 from pyraft.core.role import Role
@@ -20,10 +19,10 @@ class Follower(Role, ReceiverApi):
         self.heartbeat = threading.Event()
 
     def run(self) -> RoleName:
-        while not self.interrupted:
+        while not (self.interrupted or self.state.role_changed):
             log.info(f"RUN - [{self.state.term}] - {self.state.log} - Heartbeat waiting start.")
             log.info(f"RUN - [{self.state.term}] - {self.state.log} - Waiting heartbeat...")
-            self.heartbeat.wait(Timings.BROADCAST_TIME)
+            self.heartbeat.wait(Timings.HEARTBEAT_TIME)
             if self.heartbeat.is_set():
                 log.info(f"RUN - [{self.state.term}] - {self.state.log} - Heartbeat received.")
                 self.heartbeat.clear()
@@ -31,6 +30,8 @@ class Follower(Role, ReceiverApi):
                 log.info(f"RUN - [{self.state.term}] - {self.state.log} - No heartbeat. Waiting election time...")
                 with self.state:
                     self.state.candidate = None
+                if self.interrupted or self.state.role_changed:
+                    break
                 self.heartbeat.wait(Timings.election_timeout())
                 if self.state.candidate is not None:
                     log.info(f"RUN - [{self.state.term}] - {self.state.log} - Find candidate.")

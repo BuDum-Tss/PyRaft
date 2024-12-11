@@ -38,11 +38,11 @@ class Candidate(Role, ReceiverApi):
 
     def run(self):
         self.executor = ThreadPoolExecutor(max_workers=len(self.state.settings.nodes) - 1)
-        while not self.interrupted:
+        while not (self.interrupted or self.state.role_changed):
             self.state.term += 1
             logging.info(f"[{self.state.term}] - {self.state.log} - New round. Request votes...")
             self.futures = self._request_votes()
-            timeout = Timings.election_timeout()
+            timeout = Timings.VOTE_TIMEOUT
             logging.info(f"Wait {timeout} sec")
             self.voting.wait(timeout)
             if self.voting.is_set():

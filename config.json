@@ -1,5 +1,7 @@
 {
   "ServerA": "localhost:1111",
   "ServerB": "localhost:2222",
-  "ServerC": "localhost:3333"
+  "ServerC": "localhost:3333",
+  "ServerD": "localhost:4444",
+  "ServerE": "localhost:5555"
 }

@@ -30,11 +30,13 @@ class Leader(Role, ReceiverApi):
         self.executor = ThreadPoolExecutor(max_workers=len(self.state.settings.nodes) - 1)
         self.state.role_changed = False
         self.state.leader_id = self.state.settings.myself.id
-        while not self.interrupted:
+        while not (self.interrupted or self.state.role_changed):
             log.info(f"RUN - [{self.state.term}] - {self.state.log} - Heartbeat start.")
             log.info(f"RUN - [{self.state.term}] - {self.state.log} - Send changes...")
             with self.state:
                 futures = self.send_changes()
+            if self.interrupted or self.state.role_changed:
+                break
             log.info(f"RUN - [{self.state.term}] - {self.state.log} - Waiting futures...")
             self.heartbeat.wait(Timings.HEARTBEAT_TIME)
             for future in as_completed(futures):
@@ -52,7 +54,8 @@ class Leader(Role, ReceiverApi):
         for index in indexes:
             index_counts[index] = list(self.prev_index.values()).count(index)
         log.info(f"RUN - [{self.state.term}] - {self.state.log} - Count indexes: {index_counts}\n{self.prev_index}")
-        for index, count in sorted(index_counts.items(), key=lambda x: -x[1]):
+        for index, count in filter(lambda value: value[0] > self.log.commit_index,
+                                   sorted(index_counts.items(), key=lambda x: -x[1])):
             log.info((index, count))
             log.info(count > len(self.state.settings.nodes)/2)
             if count + 1 > len(self.state.settings.nodes)/2:
@@ -66,15 +69,15 @@ class Leader(Role, ReceiverApi):
         return [self.executor.submit(self.send_changes_to, address) for address in addresses]
 
     def send_changes_to(self, address: Address) -> None:
-        log.info(f"{address} - [{self.state.term}] - {self.state.log} - Send changes.")
         prev_log_index = self.prev_index[address.id]
+        log.info(f"{address} - [{self.state.term}] - {self.state.log} - Send changes. {prev_log_index}")
         data = AppendRecordsReq(term=self.state.term,
                                 leader_id=self.state.settings.myself.id,
                                 prev_log_index=prev_log_index,
                                 prev_log_term=self.log[prev_log_index].term,
                                 records=self.log[prev_log_index + 1 :],
                                 commit=self.log.commit_index)
-        resp: AppendRecordsResp = self.sender.append_records(str(address), data, timeout=Timings.HEARTBEAT_TIME - 1)
+        resp: AppendRecordsResp = self.sender.append_records(str(address), data, timeout=Timings.HEARTBEAT_TIMEOUT)
 
         if resp:
             if resp.success:
