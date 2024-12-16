@@ -1,16 +1,16 @@
-from typing import List
+from typing import List, AnyStr, Any
 from pydantic import BaseModel
 
 
 class SyncObjectModel(BaseModel):
     key: str
-    value: str
+    value: Any
 
 
 class Record(SyncObjectModel):
     term: int
     key: str
-    value: str
+    value: Any
 
 
 class AppendRecordsReq(BaseModel):
