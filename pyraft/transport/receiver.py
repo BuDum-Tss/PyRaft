@@ -1,5 +1,8 @@
-from fastapi import FastAPI, Request
+import json
+
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import RedirectResponse
+from starlette.responses import JSONResponse
 
 from pyraft import Node
 from pyraft.data.messages import AppendRecordsReq, RequestVoteReq, SyncObjectModel, AppendRecordsResp, RequestVoteResp
@@ -37,13 +40,14 @@ def request_vote(request_data: RequestVoteReq):
         return api.node.receiver().request_vote(request_data)
 
 
-@api.post("/set", response_model=str)
-def set_value(request_data: SyncObjectModel):
-    with api.node.receiver().state:
-        code, message = api.node.receiver().set_value(request_data)
-    return message
+@api.post("/set")
+def set_value(request_data: SyncObjectModel, request: Request):
+    ttl = float(request.headers.get('TTL')) if 'TTL' in request.headers else None
+    code, message, version = api.node.receiver().set_value(request_data, ttl=ttl)
+    return JSONResponse(status_code=code, content=message, headers={"Version" : str(version)})
 
 
 @api.get("/get/{key}")
 def get_value(key: str):
-    return api.node.receiver().get_value(key)
+    value, version = api.node.receiver().get_value(key)
+    return JSONResponse(content=value, headers={"Version" : str(version)})

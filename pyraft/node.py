@@ -7,10 +7,10 @@ from pyraft.transport.sender import HttpSender
 
 
 class Node:
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Settings, sync_storage: SyncStorage = SyncStorage()):
         super().__init__()
         self.settings = settings
-        self.sync_storage = SyncStorage()
+        self.sync_storage = sync_storage
         self.log = Log(sync_storage=self.sync_storage)
         self.state = State(settings=self.settings, log=self.log)
         self.sender: SenderApi = HttpSender()

@@ -42,12 +42,14 @@ class Candidate(Role, ReceiverApi):
             self.state.term += 1
             logging.info(f"[{self.state.term}] - {self.state.log} - New round. Request votes...")
             self.futures = self._request_votes()
+            if self.interrupted or self.state.role_changed:
+                break
             timeout = Timings.VOTE_TIMEOUT
             logging.info(f"Wait {timeout} sec")
             self.voting.wait(timeout)
-            if self.voting.is_set():
+            if self.interrupted or self.state.role_changed or self.voting.is_set():
                 logging.debug(f"[{self.state.term}] - {self.state.log} - Voting finished. New role: {self.new_role}")
-                return self.new_role
+                break
             for future in as_completed(self.futures):
                 future.result()
         logging.info(f"[{self.state.term}] - {self.state.log} - New role")
@@ -100,5 +102,5 @@ class Candidate(Role, ReceiverApi):
         logging.debug(f"[{self.state.term}] - {self.state.log} -  RV sender is not actual!")
         return RequestVoteResp(term=self.state.term, vote_granted=False)
 
-    def set_value(self, data: RequestVoteResp):
-        return 301, "Changing leader. Please, wait..."
+    def set_value(self, data: RequestVoteResp, ttl: float=None) -> tuple[int, str, int]:
+        return 301, "Changing leader. Please, wait...", 0

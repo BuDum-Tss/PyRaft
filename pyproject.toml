@@ -20,8 +20,9 @@ build-backend = "poetry.core.masonry.api"
 
 
 [tool.poetry.scripts]
-test = "test.unit:main"
 raft = "pyraft.main:main"
+node = "lock:node"
+philosopher = "lock:philosopher"
 
 [tool.poe.tasks]
 sA = "poetry run raft -n ServerA -c config.json"

@@ -14,11 +14,11 @@ class ReceiverApi(ABC):
         pass
 
     @abstractmethod
-    def set_value(self, data: SyncObjectModel) -> Tuple[int, str]:
+    def set_value(self, data: SyncObjectModel, ttl: float=None) -> Tuple[int, str, int]:
         pass
 
     @abstractmethod
-    def get_value(self, key: str) -> str:
+    def get_value(self, key: str) -> tuple[str, int]:
         pass
 
 
@@ -32,5 +32,5 @@ class SenderApi(ABC):
         pass
 
     @abstractmethod
-    def set_value(self, address: str, data: SyncObjectModel, timeout: float = 10.0) -> tuple[int, str]:
+    def set_value(self, address: str, data: SyncObjectModel, ttl: float=None, timeout: float = 10.0) -> tuple[int, str, int]:
         pass

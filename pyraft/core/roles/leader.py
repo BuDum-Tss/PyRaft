@@ -1,6 +1,7 @@
 import logging
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from time import sleep
 
 from pyraft.core.api import ReceiverApi, SenderApi
 from pyraft.core.role import Role
@@ -41,6 +42,8 @@ class Leader(Role, ReceiverApi):
             self.heartbeat.wait(Timings.HEARTBEAT_TIME)
             for future in as_completed(futures):
                 future.result()
+            if self.interrupted or self.state.role_changed:
+                break
             log.info(f"RUN - [{self.state.term}] - {self.state.log} - Check quorum...")
             with self.state:
                 self.log.commit_index = self.update_commit_index()
@@ -109,6 +112,13 @@ class Leader(Role, ReceiverApi):
         log.info(f"RV - [{self.state.term}] - {self.state.log} - RV sender is not actual!")
         return RequestVoteResp(term=self.state.term, vote_granted=False)
 
-    def set_value(self, data: SyncObjectModel):
-        self.state.log.append(Record(term=self.state.term, key=data.key,value=data.value))
-        return 200, "Ok"
+    def set_value(self, data: Record, ttl: float=None):
+        if ttl is None:
+            record = Record(term=self.state.term, key=data.key,value=data.value)
+        else:
+            record = Record(term=self.state.term, key=data.key, value=data.value, ttl=ttl)
+        self.state.log.append(record)
+        index = self.state.log.last_log_index
+        while self.log[index].applied is None:
+            sleep(0.05)
+        return 200 if self.log[index].applied else 409, self.log.sync_storage.get_value(data.key), self.log.sync_storage.get_version(data.key)

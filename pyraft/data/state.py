@@ -39,7 +39,7 @@ class Log:
 
     def apply(self, log_idx: int):
         record = self._log[log_idx]
-        self.sync_storage.update(record.key, record.value)
+        record.applied = self.sync_storage.update(record.key, record.value, ttl=record.ttl)
         log.info(f"LOG APPLIED: [{record.key}] = {record.value}")
 
     @property

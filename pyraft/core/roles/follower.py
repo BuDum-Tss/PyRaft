@@ -88,8 +88,8 @@ class Follower(Role, ReceiverApi):
         logging.debug(f"RV - [{self.state.term}] - {self.state.log} -  RV sender is not actual!")
         return RequestVoteResp(term=self.state.term, vote_granted=False)
 
-    def set_value(self, data: SyncObjectModel) -> tuple[int, str]:
+    def set_value(self, data: SyncObjectModel, ttl: float=None) -> tuple[int, str, int]:
         leader = self.state.leader
         if leader is None:
-            return 503, "Leader not found"
-        return self.sender.set_value(leader, data)
+            return 503, "Leader not found", 0
+        return self.sender.set_value(leader, data, ttl=ttl)

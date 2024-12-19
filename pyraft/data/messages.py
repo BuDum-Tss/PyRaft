@@ -6,12 +6,12 @@ class SyncObjectModel(BaseModel):
     key: str
     value: Any
 
-
 class Record(SyncObjectModel):
     term: int
     key: str
     value: Any
-
+    ttl: float | None = None
+    applied: bool | None = None
 
 class AppendRecordsReq(BaseModel):
     term: int

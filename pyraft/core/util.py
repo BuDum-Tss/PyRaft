@@ -3,7 +3,7 @@ import random
 
 class Timings:
     HEARTBEAT_TIME = 0.1
-    VOTE_TIMEOUT = 0.5
+    VOTE_TIMEOUT = 1
     HEARTBEAT_TIMEOUT = 0.05
 
     @staticmethod

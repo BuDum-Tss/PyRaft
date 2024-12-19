@@ -44,17 +44,17 @@ class HttpSender(SenderApi):
                 return TypeAdapter(type=RequestVoteResp).validate_json(response.text)
             return None
 
-    def set_value(self, address: str, data: SyncObjectModel, timeout: float = 10.0) -> tuple[int, str]:
+    def set_value(self, address: str, data: SyncObjectModel, ttl: float=0, timeout: float = 10.0) -> tuple[int, str, int]:
         with requests.Session() as session:
             url = f"http://{address}/set"
             try:
                 response: requests.Response = session.post(url, data=data.model_dump_json(),
-                                                           headers={"Content-Type": "application/json"},
+                                                           headers={"Content-Type": "application/json"} | {"TTL": str(ttl)} if ttl is not None else {},
                                                            timeout=timeout)
             except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
                 log.error(f"{address} - \"POST /set\" ConnectionError\n"
                           f"DATA: {data.model_dump_json()}")
-                return 301, "Leader unavailable"
+                return 301, "Leader unavailable", 0
             log.info(f"{address} - \"POST /set\" {response.status_code}\n"
                      f"DATA: {data.model_dump_json()}\nRESPONSE: {response.text}")
-            return response.status_code, response.text.strip('"')
+            return response.status_code, response.text.strip('"'), int(response.headers["Version"]) if response.headers["Version"] != 'None' else None

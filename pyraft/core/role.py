@@ -1,5 +1,7 @@
 from abc import abstractmethod
 
+from click import Tuple
+
 from pyraft.core.api import SenderApi, ReceiverApi
 from pyraft.data.util import RoleName
 from pyraft.data.state import State
@@ -18,8 +20,8 @@ class Role(ReceiverApi):
     def run(self) -> RoleName:
         pass
 
-    def get_value(self, key: str) -> str:
-        return self.state.log.sync_storage.get_value(key)
+    def get_value(self, key: str) -> tuple[str, int]:
+        return self.state.log.sync_storage.get_value(key), self.state.log.sync_storage.get_version(key)
 
     def stop(self):
         self.interrupted = True
